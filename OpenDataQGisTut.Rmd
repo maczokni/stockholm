@@ -4,25 +4,88 @@ author: "Reka Solymosi"
 date: "3/31/2017"
 output: html_document
 ---
-#Accessing open data
+#Accessing open data: the aims of this tutorial
 There is now a wealth of data available online. These come from a variety of sources (crowdsourced data, online transaction data, administrative data, and so on), and in many formats (csv file, xml or json files, or through application program interfaces (APIs)). You will often want to access such data, and use it for your own work or research. 
 
 This tutorial will show you how to access data from the web using QGIS. We will write some python scripts (don't worry, you will only have to copy and paste) and also use some plugins available in QGIS. 
 
 We will perform some web-scraping, for getting data from websites taking advantage of their HTML tags, and we will also be collecting tweets available through the twitter API.
 
-This tutorial is meant to give you a flavour of how you can access data from online resources, and import it directly into QGIS. The code will be here for your reference, and this tutoarial will be available online [here](). If you have any questions later, do not hesitate to get in touch **reka.solymosi@manchester.ac.uk**
+This tutorial is meant to give you a flavour of how you can access data from online resources, and import it directly into QGIS. The code will be here for your reference, and this tutorial will be available online [here](https://rawgit.com/maczokni/stockholm/master/OpenDataQGisTut.html). If you have any questions later, do not hesitate to get in touch through [email](mailto:reka.solymosi@manchester.ac.uk).
+
 
 #Tools
-
-The main tool we will be using is QGIS, and its plugins. However we will also be making use of some Python code to use within the QGIS environment. Python is the language on which QGIS is built, and many of the plugins you might use will have been written by people with such code. It's possible to write your own plugins, or to write scripts which you can automatically execute from within QGIS. Here I will be showing you the code directly for one exercise (web scraping) so that you can get a sense of what such a script would be doing, and how you can edit it to fit your needs. 
-
-
-For those potentially unfamiliar with it Python is ...
-[PUT IN SOME HISTORY]
+Throughout this tutorials we will be using 2 main tools, QGIS and Python. I will introduce them both briefly here, giving enough context required for this tutorial. 
 
 
-You can write such code in many dedicated development environments, however for our purposes here, QGIS provides a built-in console where you can execute python code. This console is a quick way to learn scripting and do quick data processing. 
+##QGIS
+The main tool we will be using is QGIS. QGIS functions as geographic information system (GIS) software, allowing users to analyze and edit spatial information, in addition to composing and exporting graphical maps. Throughout this tutorial I assume that you have some experience using QGIS (or a similar GIS) and you are familiar with spatial data handling and analysis. If you are interested, you can learn more about QGIS here:
+
+- [About QGIS](http://www.qgis.org/en/site/about/index.html)
+- [See some case studies](http://www.qgis.org/en/site/about/case_studies/index.html)
+- [Browse some tutorials](http://www.qgistutorials.com/en/)
+
+###Plugins
+
+QGIS has a variety of plugins that you can download, and use for your work. Plugins in QGIS add useful features to the software. Plugins are written by QGIS developers and other independent users who want to extend the core functionality of the software. These plugins are made available in QGIS for all the users.
+
+You can see a tutorial for installing and using plugins [here](http://www.qgistutorials.com/en/docs/using_plugins.html)
+
+We will be using 2 plugins in this tutorial. First is the Python Console. This should already be available for you, when you click on *Plugins* > *Python Console*. So there isn't anything furhter you need to do for using this, and we will return to it in a bit. 
+
+
+The second plugin we'll be using is called twitter2qgis and it is for getting data from Twitter into QGIS. This is actually an *experimental* plugin. The plugins that are available to you for installation depend on which plugin repositories you are configured to use. QGIS plugins are stored online in repositories. By default, only the official repositories are active, meaning that you can only access official plugins. These are usually the first plugins you want, because they have been tested thoroughly and are often included in QGIS by default. It is possible, however, to try out more plugins than the default ones. To see experimental plugins you open the *Settings* tab in the *Plugin Manager* dialog:
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("pluginManagerSettings.png")
+```
+
+
+Select the option to display Experimental Plugins by selecting the Show also experimental plugins checkbox.
+
+To install twitter2qgis now click on the *All* tab, and in the search bar, type in "twitter2qgis". You will see the plugin appear. Select and install it using *Install plugin*. When finished, you will now see it under the *Web* tab in QGIS. 
+
+
+##Python
+We will also be making use of some Python code to use within the QGIS environment. Python is the language on which QGIS is built, and the plugins you might already be using will have been written by people with such code. It's possible to write your own plugins, or to write scripts which you can automatically execute from within the QGIS environmenr. Here I will be showing you the code directly for one exercise (web scraping) so that you can get a sense of what such a script would be doing, and how you can edit it to fit your needs. 
+
+For those unfamiliar with it, Python is a widely used high-level programming language for general-purpose programming, created by Guido van Rossum and first released in 1991. Python can be easy to pick up whether you're a first time programmer or you're experienced with other languages. For those interested here are some ways to get started:
+
+- [Beginner's Guide, Programmers](https://wiki.python.org/moin/BeginnersGuide/Programmers)
+- [Beginner's Guide, Non-Programmers](https://wiki.python.org/moin/BeginnersGuide/NonProgrammers)
+- [Beginner's Guide, Download & Installation](https://wiki.python.org/moin/BeginnersGuide/Download)
+- [Code sample and snippets for Beginners](https://wiki.python.org/moin/BeginnersGuide/Examples)
+
+
+###Setting up Python
+If you use a cluster PC, you can skip this step. However, if you want to follow this along on your own laptop, or you will have to install and setup Python. 
+
+####Mac users
+
+Python comes with OS X, so you can probably don't need to do a separate install. You can check this by typing `python --version` into Terminal. Apple's Terminal app is a direct interface to OS X's bash shell — part of its UNIX underpinnings. When you open it, Terminal presents you with a white text screen, logged in with your OS X user account by default. You can type your commands in there. If you don't already use Terminal I recommend reading up on how it could be useful for you [here](http://www.macworld.co.uk/feature/mac-software/how-use-terminal-on-mac-3608274/). But that's outside of the scope for now, so for now it's enough if you know how to open it up, and then you type (or copy and paste) the code `python --version`, and hit Enter. 
+
+
+If you get an error message, you need to install Python. If Terminal prints something like  "Python 2.7.3" (where the exact numbers you see may be different), you're all set to move on to the next section. 
+
+
+For those who received the error message, you will need to follow the steps in this tutorial to get Python installed. 
+
+- [Tutorial for installing Python on mac](http://python-guide-pt-br.readthedocs.io/en/latest/starting/install/osx/)
+
+
+####PC users
+
+PC users will hopefully have had a tutorial prepared by Oscar, and in any case there are many tutorials available online for installing Python:
+
+- [Tutorial for installing Python on PC](https://en.wikibooks.org/wiki/A_Beginner%27s_Python_Tutorial/Installing_Python)
+
+
+###Writing Python
+
+You will also have heard about IDEs in some of these tutorials. An integrated development environment (IDE) is a software application that provides comprehensive facilities to computer programmers for software development. This is normally the environment where programmers write their code. You can of course use anything that can edit text (I prefer [sublime text](https://www.sublimetext.com/2) for a basic text editor) or something mode sophisticated, for example [Eclipse](https://eclipse.org/ide/), which contains in it a collection of tools, including tools for debugging, GUI builders and tools for modeling, testing, and more.
+
+You can write such code in many such dedicated development environments, however for our purposes here, QGIS provides a built-in console where you can execute python code. This console is a quick way to learn scripting and do quick data processing. 
 
 
 You can open the Python Console by going to Plugins > Python Console:
@@ -70,10 +133,21 @@ knitr::include_graphics("helloworld.gif")
 
 Now this varaible, called `hello` is in your environment. 
 
+
 Try what happens if you just type it's name (hello) into the console, to call it. 
 You can now do anythinto the values in this variable, by referring to the variable name. 
 
-[PUT IN EXAMPLE WITH GREPL OR CAPITALISE OR SOMETHING]
+
+So for example, if you wanted to print the same thing but all in upper case, you can now apply the `upper()` function to this variable. 
+
+
+So you would type: 
+
+
+```{python, eval=FALSE}
+hello.upper()
+```
+
 
 Congratulations you have just written your first bit of code! Woohoo!
 
@@ -98,7 +172,7 @@ knitr::include_graphics("find_file_path.gif")
 ```
 
 
-On a PC, you can fing a path to a file or folder by navitgating to it using [file explorer] and once there, copying the file path from the top bar. This is illustrated by the red circle below:
+On a PC, you can fing a path to a file or folder by navitgating to it using *Windows Explorer* and once there, copying the file path from the top bar. This is illustrated by the red circle below:
 
 
 ```{r, out.width = "600px", echo=FALSE}
@@ -124,7 +198,7 @@ my_path = "/Users/reka/Desktop/openDataTut"
 
 You can copy the above into a text editor, and then within there replace the path with the one that is relevant to you. Make sure it's all inside the quotation marks ("") and that there is no space on either end. 
 
-NOTE: Be careful with your choice of text editor though because some text editors mess about with quotation marks. If you are using a text editor that is not created for writing code, or somehow uses non UTF-8 characters [link about whta that is]() then you might encounter an error when you execute this code, telling you about an illegal character. If this happens, just delete and re-type the quotation marks within the QGIS python console. 
+NOTE: Be careful with your choice of text editor though because some text editors mess about with quotation marks. If you are using a text editor that is not created for writing code, or somehow uses [non UTF-8 characters](http://stackoverflow.com/questions/3224268/python-unicode-encode-error) then you might encounter an error when you execute this code, telling you about an illegal character. If this happens, just delete and re-type the quotation marks within the QGIS python console. I would suggest you use a text editor like [sublime text 2](https://www.sublimetext.com/2) mentioned earlier, or [Notepad++](https://notepad-plus-plus.org/) that is meant for writing code in. 
 
 Anyway, create this variable called *my_path* by replacing my filepath above whith yours. Then run this in the QGIS python console, to create this variable. You can check that you have succeeded, and the value the variable currently holds, the same way we did in the hello world exercise. Just like we created the hello object to hold your text saying "hello world :)", we have now created this path object, to hold the path to your folder, where you will be saving everything. 
 
@@ -153,11 +227,10 @@ What you are doing here, is making sure that this folder is where we will be sav
 Python is great and versatile because it has many modules that people have created, which enable you to easily do certain operations. Basically, modules are bits of code, that someone has written to perform somethin specific. For example there is a module for graphing, there is a module for webscraping, and so on. The nice thing about these is that someone has written thes euseful functions, and we can just import the module and run these functions, without having to write the complicated stuff ourself. Further, because python is open source and anyone can contribute, there are many modules that correspond to pepople's many interests. You could write your own if you wanted to! 
 
 
-Normally, to use a module, you have to download it onto your own computer beforehand. You can see [here](https://packaging.python.org/installing/) for some information about downloading modules for yourself on your PC. You will need to install something called pip, for which there is a quick tutorial [here](https://www.youtube.com/watch?v=zPMr0lEMqpo), and then you can use that to install packages. There is a quick video tutorial of how to install a package [here](https://www.youtube.com/watch?v=ddpYVA-7wq4). 
+You will have already installed the modules, or if you are using the PCs provided in the computer lab, then everything should be pre-installed for you. 
 
-But on the lab PCs you will have these already installed, so you don't have to worry about this at the moment. 
 
-While modules only need to be installed once (the first time you use them), to use them within your code you have to import them every time. This loads the code from the module into your environment, allowing you to use all the handy functions. To import a module, you can either import everything with the command `import module_name`, or you can import just certain parts with `import thing_i_want from module_name`. 
+While modules only need to be installed once (the first time you use them), to use them within your code you have to import them into the section of code where you will be using them. This loads the code from the module into your environment, allowing you to use all the handy functions. To import a module, you can either import everything with the command `import module_name`, or you can import just certain parts with `import thing_i_want from module_name`. 
 
 In this tutorial we use code from three modules (actually, those paying close attention will have noticed that we use 4, but one we already accessed when setting the working directory...). 
 
@@ -185,15 +258,21 @@ Now that these modules are imported, we are ready to use them in our next sectio
 
 #Webscraping 
 
+
 Web scraping (web harvesting or web data extraction) is data scraping used for extracting data from websites. While web scraping can be done manually by a software user, the term typically refers to automated processes implemented using a bot or web crawler. It is a form of copying, in which specific data is gathered and copied from the web, typically into a central local database or spreadsheet, for later retrieval or analysis. [Wikipedia](https://en.wikipedia.org/wiki/Web_scraping).
+
 
 In the lecture I described scraping data from [Fix My Street](www.fixmystreet.com). That exercise was a larger scale project that took quite some time. So we will not replicate that here. Instead, we will carry out a small-scale project here, to give you an idea (and the skills) for doing this yourself, perhaps on larger scales.
 
+
 ##Looking 'behind the scenes'
+
 
 As mentioned above, webscraping using beautiful soup makes use of the html tags on a page to collect information into a tabular format, that you can then use for analysis. To understand how you can use this, it is important to see the structure of a page. 
 
+
 If you have some experience writing html then you might be at an advantage here. But even if you have not seen anything like this before, do not worry, it is easier than you think!
+
 
 So first we have to identify a page that has some data we're interested in. Let's stick with fixmystreet.com. So let's have a look at the data they have here, about the number of reports in each local authority. You can see this in a table [here](https://www.fixmystreet.com/reports). 
 
