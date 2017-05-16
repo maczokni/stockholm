@@ -5,13 +5,26 @@ date: "3/31/2017"
 output: html_document
 ---
 #Accessing open data: the aims of this tutorial
+
 There is now a wealth of data available online. These come from a variety of sources (crowdsourced data, online transaction data, administrative data, and so on), and in many formats (csv file, xml or json files, or through application program interfaces (APIs)). You will often want to access such data, and use it for your own work or research. 
+
 
 This tutorial will show you how to access data from the web using QGIS. We will write some python scripts (don't worry, you will only have to copy and paste) and also use some plugins available in QGIS. 
 
+
 We will perform some web-scraping, for getting data from websites taking advantage of their HTML tags, and we will also be collecting tweets available through the twitter API.
 
+
 This tutorial is meant to give you a flavour of how you can access data from online resources, and import it directly into QGIS. The code will be here for your reference, and this tutorial will be available online [here](https://rawgit.com/maczokni/stockholm/master/OpenDataQGisTut.html). If you have any questions later, do not hesitate to get in touch through [email](mailto:reka.solymosi@manchester.ac.uk).
+
+
+The overall aim is to get you familiar with these technique, and to get you thikning about the possibilities for collecting data to aide new insigt into the topic areas in which your main research or professional interests lie. To achieve this, we will carry out two tasks. Firstly we will try to visualise the distribution of reports of environmental issues made using the online problem reporting website [fix my street](https://www.fixmystreet.com/). Is everyone reporting in London? Is there a difference beetween England, and Wales, and Scotland? These are questions that we would be able to quickly begin to consider, if we were to see this data mapped. The first task will guide you through the process of scraping data from a table on the web, and getting it into QGIS into a format which you can map. 
+
+
+The second task will see us acquiring tweets about a topic of interest. The example I use are tweets about the "night tube". [London's Underground network recently introduced a 24-hour servide on weekends](https://tfl.gov.uk/campaign/tube-improvements/what-we-are-doing/night-tube), however this was not without its own controversies. The launch was delayed, and was preceded by several [tube strikes](https://www.buzzfeed.com/scottybryan/the-best-of-the-internets-reaction-to-the-tube-strike), much to commuters' inconvenience. Many Londoners took to twitter to express their concerns, and so twitter offered an excellent source of data to gain insight into the reasons behind people's upset. This tutorial illustrates a guide on how to sign up for a twitter developer accound, and use the API to retreive tweets on a particular topic. 
+
+
+By following along with these tutorials it is hoped that you gain some hands-on experience with these new forms of data, and begin on a path of learning and 'hacking' your way to diverse insight and new perspectives about the topics on which you focus. 
 
 
 #Tools
@@ -232,9 +245,46 @@ You will have already installed the modules, or if you are using the PCs provide
 
 While modules only need to be installed once (the first time you use them), to use them within your code you have to import them into the section of code where you will be using them. This loads the code from the module into your environment, allowing you to use all the handy functions. To import a module, you can either import everything with the command `import module_name`, or you can import just certain parts with `import thing_i_want from module_name`. 
 
-In this tutorial we use code from three modules (actually, those paying close attention will have noticed that we use 4, but one we already accessed when setting the working directory...). 
+In this tutorial we use code from 4 modules (actually, those paying close attention will have noticed that we use 5, but one we already accessed when setting the working directory...). 
 
-We use the beautiful soup module, written specifically for webscraping. We also use csv so that we can save our tables as csv, and we also use requests, so that we can make request to a URL (essentially to we can load a page, and get it's html back for scraping). 
+We use the beautiful soup module, written specifically for webscraping. We also use csv so that we can save our tables as csv, and we also use requests, so that we can make request to a URL (essentially to we can load a page, and get it's html back for scraping). Finally we also use tweepy, for getting tweets!
+
+
+###Installing modules
+
+If you are working from the computer cluster PCs then you are all set, all these modules will be already downloaded for you. However, if you are working on your own computer, you will have to download these yourselves. As Oscar has shared, [this link](https://docs.python.org/3/installing/) has comprehensive guidelines on installation of modules. However I've curated some friendly step-by-step guides if that helps at all: 
+
+
+####Installing modules on a PC:
+
+[This tutorial](https://www.youtube.com/watch?v=IKRumAagQ8U) is a simple video to follow along for installing modules using easy_install with PC. 
+
+
+####Installing modules on a mac:
+
+Personally I use homebrew for mac. It's super handy. 
+[Here](https://www.youtube.com/watch?v=lI_2DWnYo8o) is a video to install Homebrew
+and [here](https://www.youtube.com/watch?v=XqADAxr7LzI) is a guide of using homebrew for installing python 3
+
+So homebrew also gets you easy_install (which you will recognise from the PC tutorial)
+So you can use that to first get pip, with this code in terminal: 
+
+
+```{python, eval=FALSE}
+easy_install pip
+```
+
+
+And then use pip to install modules with commands such as: 
+
+
+```{python, eval=FALSE}
+pip install tweepy
+```
+
+
+###Loading modules
+
 
 To load up all these modules, you will have to copy and paste the below code: 
 
@@ -417,17 +467,16 @@ print table
 You will see a whole bunch of tags in there, and it's just not as neat and tidy as we would like in order to have it as our attribute table that we can join to a shapefile, and use in our mapping. So there's one more step to cleaning this up. We achieve this by running the below code, to use these tags further to sort things into cells, rows, columns, all the things we are used to in our regular everyday tables. 
 
 ```{python, eval=FALSE}
+list_of_headers = []  # define list for headers
+for header in table.find_all('th'):  # iterate through table headers
+    list_of_headers.append(header.get_text())  # extract text from html tag and add to list called headers
 
-headers = [header.text for header in table.find_all('th')]
-list_of_rows = []
-for row in table.findAll('tr'):
-	list_of_cells = []
-	for cell in row.findAll('td'):
-		text = cell.text.replace('&nbsp;','')
-		text = text.encode('utf-8').strip()
-		list_of_cells.append(text)
-	list_of_rows.append(list_of_cells)
-
+list_of_rows = []	# define list for rows
+for row in table.findAll('tr'):  # iterate through table rows
+    list_of_cells = []	# define list for cells
+    for cell in row.findAll('td'):  # iterate through table cells
+        list_of_cells.append(cell.get_text()) # extract text from html tag and add to list called headers
+    list_of_rows.append(list_of_cells) # when a row is finished, append cells to list of rows
 
 ```
 
@@ -435,7 +484,7 @@ And once we have run this, we can then save our now normal everyday looking tabl
 
 
 ```{python, eval=FALSE}
-my_file_name = "./your_filename_here.csv"
+my_file_name = "your_filename_here.csv"
 ```
 
 
@@ -443,7 +492,7 @@ So in this case, let's be totally uncreative, and call this object `output.csv`.
 
 
 ```{python, eval=FALSE}
-my_file_name = "./output.csv"
+my_file_name = "output.csv"
 ```
 
 
@@ -453,7 +502,7 @@ Great stuff. Now we can finally save our table
 ```{python, eval=FALSE}
 outfile = open(my_file_name, "w")
 writer = csv.writer(outfile, lineterminator="\n")
-writer.writerow(headers)
+writer.writerow(list_of_headers)
 writer.writerows(list_of_rows)
 ```
 
@@ -464,13 +513,10 @@ So you can do this the pointy-clicky way, as you would normally load a .csv file
 
 
 ```{python, eval=FALSE}
-uri = "file:///" + path + "/output.csv?type=csv&geomType=none"
-layer = QgsVectorLayer(uri, "fms_table", "delimitedtext")
-QgsMapLayerRegistry.instance().addMapLayer(layer)
+uri = "file:///" + path + "/" + my_file_name + "?type=csv&geomType=none"
+layer = QgsVectorLayer(uri, "fms_table", "delimitedtext") # create layer from text file called fms_table
+QgsMapLayerRegistry.instance().addMapLayer(layer) # add layer to QGIS
 ```
-
-
-Note that if you name your file something different (here we named it output.csv) you will have to change that in the code above. You just have to replace `output` with whatever filename you chose. You can also change the name that you want to give this table 
 
 
 You should now see your new table appear in your QGIS layers.  
@@ -540,7 +586,7 @@ However, we actually want to replace more things, not just "District Council". W
 
 
 ```{r, eval=FALSE}
-replace(replace(replace("Name",'District Council','') , 'Borough Council',''), 'Council','')
+replace(replace(replace("Name",' District Council','') , ' Borough Council',''), ' Council','')
 ```
 
 
@@ -558,95 +604,7 @@ Now if you click OK, this will result in a new column, where these will be remov
 
 So there is something to mention here. This way of getting rid of fields that might not match the values in the geojson column is not very "clean". We are guessing what the simplest operation can be to match them up. There are of course errors. For example, this way in the column in the FixMy Street data, we have "York City", which in the geojson attribute table is just "York". So this will not join. There are many things you can do here, you could go through each line and match the closest possible match, or you can do this computationally, for example creating some closeness scores, or identifying words that sound like the target work using [soundex](https://en.wikipedia.org/wiki/Soundex) for example. I do not have time in this tutorial to cover this, but this can be an interesting area to learn more about. If intersted, I recommend a read of the [Bad Data Handbook](http://shop.oreilly.com/product/0636920024422.do). 
 
-However here, for the sake of speed, we will just select the rows which match the rows in the target spatial layer. To do this, we can get a list of the names from the layer very simply using a little bit more Python. Make sure you have clicked on the geojson layer, so that is your active layer. 
-
-Then, identify this as the active layer by copying this code into the Python Console: 
-
-```{python, eval=FALSE}
-lyr = iface.activeLayer()
-```
-
-
-
-After that get the features from this layer
-
-
-```{python, eval=FALSE}
-features = lyr.getFeatures()
-```
-
-
-Then create an empty list called name_list, and populate it by appending to it the name from each row: 
-
-```{python, eval=FALSE}
-name_list = []
-
-for feat in features:
-    attrs = feat.attributes()
-    name_list.append(attrs[2])
-
-```
-
-
-Now you have a list of all the names. Go ahead and print this, by calling its name, as we have done with other variables before: 
-
-
-```{python, eval=FALSE}
-name_list
-```
-
-
-So we can then use this list to select only the fields that are found in this list. Unfortunately, not being a QGIS/Python wizard, I cannot figure out how to do this any simpler than copy and pasting the list into an equation using the 'select by equation' function. 
-
-So to follow these steps, open the attribute table for your output.csv, and click on the select by equation button: 
-
-
-
-
-Then you can copy and paste the equation into there. Bascially we are saying that we want to select all the rows where the linkName column value can be found in the list we just printed with Python above. You can do this by copy pasting this equation:
-
-
-```{python, eval=FALSE}
-"linkName"  IN ('Hartlepool', 'Middlesbrough', 'Redcar and Cleveland', 'Stockton-on-Tees', 'Darlington', 'Halton', 'Warrington', 'Blackburn with Darwen', 'Blackpool', 'Kingston upon Hull, City of', 'East Riding of Yorkshire', 'North East Lincolnshire', 'North Lincolnshire', 'York', 'Derby', 'Leicester', 'Rutland', 'Nottingham', 'Herefordshire, County of', 'Telford and Wrekin', 'Stoke-on-Trent', 'Bath and North East Somerset', 'Bristol, City of', 'North Somerset', 'South Gloucestershire', 'Plymouth', 'Torbay', 'Bournemouth', 'Poole', 'Swindon', 'Peterborough', 'Luton', 'Southend-on-Sea', 'Thurrock', 'Medway', 'Bracknell Forest', 'West Berkshire', 'Reading', 'Slough', 'Windsor and Maidenhead', 'Wokingham', 'Milton Keynes', 'Brighton and Hove', 'Portsmouth', 'Southampton', 'Isle of Wight', 'County Durham', 'Cheshire East', 'Cheshire West and Chester', 'Shropshire', 'Cornwall', 'Isles of Scilly', 'Wiltshire', 'Bedford', 'Central Bedfordshire', 'Northumberland', 'Aylesbury Vale', 'Chiltern', 'South Bucks', 'Wycombe', 'Cambridge', 'East Cambridgeshire', 'Fenland', 'Huntingdonshire', 'South Cambridgeshire', 'Allerdale', 'Barrow-in-Furness', 'Carlisle', 'Copeland', 'Eden', 'South Lakeland', 'Amber Valley', 'Bolsover', 'Chesterfield', 'Derbyshire Dales', 'Erewash', 'High Peak', 'North East Derbyshire', 'South Derbyshire', 'East Devon', 'Exeter', 'Mid Devon', 'North Devon', 'South Hams', 'Teignbridge', 'Torridge', 'West Devon', 'Christchurch', 'East Dorset', 'North Dorset', 'Purbeck', 'West Dorset', 'Weymouth and Portland', 'Eastbourne', 'Hastings', 'Lewes', 'Rother', 'Wealden', 'Basildon', 'Braintree', 'Brentwood', 'Castle Point', 'Chelmsford', 'Colchester', 'Epping Forest', 'Harlow', 'Maldon', 'Rochford', 'Tendring', 'Uttlesford', 'Cheltenham', 'Cotswold', 'Forest of Dean', 'Gloucester', 'Stroud', 'Tewkesbury', 'Basingstoke and Deane', 'East Hampshire', 'Eastleigh', 'Fareham', 'Gosport', 'Hart', 'Havant', 'New Forest', 'Rushmoor', 'Test Valley', 'Winchester', 'Broxbourne', 'Dacorum', 'Hertsmere', 'North Hertfordshire', 'Three Rivers', 'Watford', 'Ashford', 'Canterbury', 'Dartford', 'Dover', 'Gravesham', 'Maidstone', 'Sevenoaks', 'Shepway', 'Swale', 'Thanet', 'Tonbridge and Malling', 'Tunbridge Wells', 'Burnley', 'Chorley', 'Fylde', 'Hyndburn', 'Lancaster', 'Pendle', 'Preston', 'Ribble Valley', 'Rossendale', 'South Ribble', 'West Lancashire', 'Wyre', 'Blaby', 'Charnwood', 'Harborough', 'Hinckley and Bosworth', 'Melton', 'North West Leicestershire', 'Oadby and Wigston', 'Boston', 'East Lindsey', 'Lincoln', 'North Kesteven', 'South Holland', 'South Kesteven', 'West Lindsey', 'Breckland', 'Broadland', 'Great Yarmouth', 'Kings Lynn and West Norfolk', 'North Norfolk', 'Norwich', 'South Norfolk', 'Corby', 'Daventry', 'East Northamptonshire', 'Kettering', 'Northampton', 'South Northamptonshire', 'Wellingborough', 'Craven', 'Hambleton', 'Harrogate', 'Richmondshire', 'Ryedale', 'Scarborough', 'Selby', 'Ashfield', 'Bassetlaw', 'Broxtowe', 'Gedling', 'Mansfield', 'Newark and Sherwood', 'Rushcliffe', 'Cherwell', 'Oxford', 'South Oxfordshire', 'Vale of White Horse', 'West Oxfordshire', 'Mendip', 'Sedgemoor', 'South Somerset', 'Taunton Deane', 'West Somerset', 'Cannock Chase', 'East Staffordshire', 'Lichfield', 'Newcastle-under-Lyme', 'South Staffordshire', 'Stafford', 'Staffordshire Moorlands', 'Tamworth', 'Babergh', 'Forest Heath', 'Ipswich', 'Mid Suffolk', 'St Edmundsbury', 'Suffolk Coastal', 'Waveney', 'Elmbridge', 'Epsom and Ewell', 'Guildford', 'Mole Valley', 'Reigate and Banstead', 'Runnymede', 'Spelthorne', 'Surrey Heath', 'Tandridge', 'Waverley', 'Woking', 'North Warwickshire', 'Nuneaton and Bedworth', 'Rugby', 'Stratford-on-Avon', 'Warwick', 'Adur', 'Arun', 'Chichester', 'Crawley', 'Horsham', 'Mid Sussex', 'Worthing', 'Bromsgrove', 'Malvern Hills', 'Redditch', 'Worcester', 'Wychavon', 'Wyre Forest', 'St Albans', 'Welwyn Hatfield', 'East Hertfordshire', 'Stevenage', 'Bolton', 'Bury', 'Manchester', 'Oldham', 'Rochdale', 'Salford', 'Stockport', 'Tameside', 'Trafford', 'Wigan', 'Knowsley', 'Liverpool', 'St. Helens', 'Sefton', 'Wirral', 'Barnsley', 'Doncaster', 'Rotherham', 'Sheffield', 'Newcastle upon Tyne', 'North Tyneside', 'South Tyneside', 'Sunderland', 'Birmingham', 'Coventry', 'Dudley', 'Sandwell', 'Solihull', 'Walsall', 'Wolverhampton', 'Bradford', 'Calderdale', 'Kirklees', 'Leeds', 'Wakefield', 'Gateshead', 'City of London', 'Barking and Dagenham', 'Barnet', 'Bexley', 'Brent', 'Bromley', 'Camden', 'Croydon', 'Ealing', 'Enfield', 'Greenwich', 'Hackney', 'Hammersmith and Fulham', 'Haringey', 'Harrow', 'Havering', 'Hillingdon', 'Hounslow', 'Islington', 'Kensington and Chelsea', 'Kingston upon Thames', 'Lambeth', 'Lewisham', 'Merton', 'Newham', 'Redbridge', 'Richmond upon Thames', 'Southwark', 'Sutton', 'Tower Hamlets', 'Waltham Forest', 'Wandsworth', 'Westminster', 'Clackmannanshire', 'Dumfries and Galloway', 'East Ayrshire', 'East Lothian', 'East Renfrewshire', 'Eilean Siar', 'Falkirk', 'Fife', 'Highland', 'Inverclyde', 'Midlothian', 'Moray', 'North Ayrshire', 'Orkney Islands', 'Perth and Kinross', 'Scottish Borders', 'Shetland Islands', 'South Ayrshire', 'South Lanarkshire', 'Stirling', 'Aberdeen City', 'Aberdeenshire', 'Argyll and Bute', 'City of Edinburgh', 'Renfrewshire', 'West Dunbartonshire', 'West Lothian', 'Angus', 'Dundee City', 'North Lanarkshire', 'East Dunbartonshire', 'Glasgow City', 'Isle of Anglesey', 'Gwynedd', 'Conwy', 'Denbighshire', 'Flintshire', 'Wrexham', 'Ceredigion', 'Pembrokeshire', 'Carmarthenshire', 'Swansea', 'Neath Port Talbot', 'Bridgend', 'Vale of Glamorgan', 'Cardiff', 'Rhondda Cynon Taf', 'Caerphilly', 'Blaenau Gwent', 'Torfaen', 'Monmouthshire', 'Newport', 'Powys', 'Merthyr Tydfil'
-)
-```
-
-
-
-Yes I know this is long, and not very efficient! I will try to find a better way of doing this, but if you're reading this that means that I have not been able to do so. WELL in any case, the main thing is that IT WORKS!!!
-
-
-```{r, out.width = "600px", echo=FALSE}
-knitr::include_graphics("pasteAndSelect.png")
-```
-
-
-So now if you have that equation pasted in there, and you click on "Select" then you should be able to see that only certain lines of the table are highlighted. These are the ones that have matching equivalents in the shape file. 
-
-
-```{r, out.width = "600px", echo=FALSE}
-knitr::include_graphics("onlySomeSelected.png")
-```
-
-
-So now, we can save these by going back to our layer, right clicking, and selecting "Save as..."
-
-
-```{r, out.width = "600px", echo=FALSE}
-knitr::include_graphics("saveSelectedAs.png")
-```
-
-
-In the dialogue, select CSV to save, give it a name using Browse, and make sure to tick the box that says 'Save only selected features': 
-
-
-```{r, out.width = "600px", echo=FALSE}
-knitr::include_graphics("saveOnlySelected.png")
-```
-
-
-You should now have this new, filtered attribute table in your environment. You can, of course call it anything, but I've names it filteredOutput. So creative. 
-
+However here, for the sake of speed, we will just select the rows which match the rows in the target spatial layer. 
 
 ###Now: JOIN the data!
 
@@ -839,11 +797,281 @@ knitr::include_graphics("nightTubeTweets.png")
 ```
 
 
-We can also search tweets by location! You can load a spatial layer, and get tweets made in that area. For example, let's load a layer of stockholm. 
+There are different things we can experiment with when defining a search term. You can see the guidelines around that [here](https://dev.twitter.com/rest/public/search). We could seatch for night tube in brackets. Do keep in mind that the more specific your search query, the longer the search will take. twitter2qgis only returns geocoded tweets, so even if a regular search brings back more, they might not have coordinates. Again for the interest of brevity of this demonstration, I will search for just 10 such tweets. 
 
-You can do this the same way we loaded the UK councils geojson, but from this address: 
+##Doing this yourself
 
-`https://raw.githubusercontent.com/johan/world.geo.json/master/countries/SWE.geo.json`
+The package is experimental, and there are no guarantees on it. It may or may not work as intended. It has some mixed reviews, and to be honest, I have had some issues with it. And since we're learning how to do this ourselves, if you're feeling more adventurous, let's get back in on that Python console, and get some tweets for ourselves!
 
 
-**[Some stuff here about how to search for what you want and then some more mapping with the tweets once we have them back]**
+So the first thing we have to do, is create some variables that hold your keys and access tokens. This is also useful, because you only have to enter it the once! With the twitter2qgis package, you need to enter this every time you use it!
+
+
+So let's start by creating these 4 varviables: 
+
+
+```{python, eval=FALSE}
+CONSUMER_KEY = '...'
+CONSUMER_SECRET = '...'
+ACCESS_KEY = '...'
+ACCESS_SECRET = '...'
+```
+
+
+Now we can use the tweepy package to retreive some tweets from the Twitter API. You load this package the same way we did the previous ones, using the `import` function:
+
+```{python, eval=FALSE}
+import tweepy
+```
+
+
+Now we can use functions from within this package. Specifically here, we will use functions that authenticate us with your keys and tokens, and function for searching through tweets. 
+
+
+```{python, eval=FALSE}
+#first create an authentication handler using your consumer key and secret
+auth = tweepy.auth.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+#and then you set your access tokens for this authentication
+auth.set_access_token(ACCESS_KEY, ACCESS_SECRET)
+#and then you use the API function and pass the authentication credentials we've built to get access to the API
+api = tweepy.API(auth)
+#not that we are deemed OK to go ahead, we can pass a search query using the search() function. Inside we specify that we want tweets where the keyword "night tube" appears in the text. Also, because I am confident that this is faster, I want 100 tweets, so I set the count to 100
+search_results = api.search(q="night tube", count=100)
+```
+
+
+When this is finished, you have a new object called `search_results` that contains these 100 tweets. You can have a look at what this contains if you want. You can print the whole thing, of if you want just print the first element[^1] by typing:
+
+
+```{python, eval=FALSE}
+search_results[1]
+```
+
+
+Now you still want to parse this into something that we can open up easily in QGIS. You can also select which bits of data you want into columns for your data table. You can have a read through all the different fields and what information they contain on the Twitter developer pages [here](https://dev.twitter.com/overview/api/tweets).
+
+
+Let's say that I want the date and time of the tweet, the username of the person who has tweeted, the text of the tweet itself, and the coordinates, if there are any. To get these into a table, we can use the below code: 
+
+
+```{python, eval=FALSE}
+#first create a csv file that will store your results. The first parameter I pass is the filename. I name mine here twitterResult.csv. The second parameter I pass in the open() function is the mode. Mode is a string indicating how the file is to be opened. The most commonly-used values of mode are 'r' for reading, 'w' for writing (truncating the file if it already exists), and 'a' for appending (which on some Unix systems means that all writes append to the end of the file regardless of the current seek position). If mode is omitted, it defaults to 'r'. 
+csvFile = open('twitterResult.csv', 'a')
+
+
+#then we use csv writer to write a csv file
+csvWriter = csv.writer(csvFile)
+
+#and we write the first row with out hearder names:
+csvWriter.writerow(["created_at", "screen_name", "text", "coordinates"])
+
+#now we build what to write. we use a for loop to iterate through all the tweets in our results
+for tweet in search_results:
+    #we also want to get coordinates, however we can only extract coordinates from tweets where they exist in the first place. So here, we say that if the coordinates are not None (so they do exist), then we want them to be extracted from the coordinates dictionary. 
+    if tweet.coordinates is not None: 
+        coordinates = tweet.coordinates.get(u'coordinates')
+    #if they are not not None (ha-ha) then we can just assign them to be "NA"
+    else:
+        coordinates = "NA"
+        
+    #then we use the writerow function to write for each tweet a new row that contains the elements of the tweets we've selected. Here these are the created_at, user.screen_name, and the actual text, as well as the coordinates that we created above.    
+    csvWriter.writerow([tweet.created_at, tweet.user.screen_name, tweet.text.encode('utf-8'), coordinates])
+    
+    #we also print this result, so we can see our script working away in the Python Console window :)
+    print tweet.created_at, tweet.user.screen_name, tweet.text, coordinates
+
+#and finally close the file, when we've gotten through all the tweets
+csvFile.close()
+
+```
+
+
+Now if you look in your working folder, you should see a new .csv file that has appeared, which contains your tweets! Exciting. Add this to your QGIS environment, either manually, or using the Python console again, as we added out fms_reports table:
+
+
+```{python, eval=FALSE}
+uri = "file:///" + path + "/" + "twitterResult.csv" + "?type=csv&geomType=none"
+layer = QgsVectorLayer(uri, "twitter_table", "delimitedtext") # create layer from text file called fms_table
+QgsMapLayerRegistry.instance().addMapLayer(layer) # add layer to QGIS
+```
+
+
+Now you can have a look at the attribute table: 
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("tweetAttribTab.png")
+```
+
+
+You can see that not many are geocoded. In fact, in my example there are only two. Normally, if you want to get geocoded tweets, you will have to leave the search running over longer periods of time, retrieving more tweets. As discussed, only about 1-2 percent of them are geocoded, so with our 100 tweets, this is about as many as we'd expect!
+
+Nevertheless, let's create a new dataframe from only those tweets which have been geocoded. For this, use the select using an equation button, in the attribute table: 
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("selByEq.png")
+```
+
+
+It will bring up a dialogue similar to field calculator. Here we need to specify an equation, that, when it returns true, those are the rows which we want to select. You essentially want to select the rows where your coordinates are not NA. So, you can do this by using the following equation in field calculator: 
+
+
+```{python, eval=FALSE}
+ "coordinates"  IS NOT 'NA'
+```
+
+
+After this, click on the select buttn in the bottom right hand corner (next to 'close')
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("selButt.png")
+```
+
+
+Now you will see that the rows with coordinates are highlighted. 
+
+
+Go back to your layer, right click, and select 'Save as...'
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("saveSelectedAs.png")
+```
+
+
+When you are saving this new layer, make sure that you tick the box for 'Save only selected':
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("saveOnlySelected.png")
+```
+
+
+You now have your (tiny) table of geocoded tweets. 
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("geoTable.png")
+```
+
+
+So as you can see, the coordinates are not in separate latitude and londitude columns. You guessed it, we've got a bit more data cleaning up before we can put these tweets on a map! But we will only be using the field calculator now. 
+
+First we want to remove the useless characters (the square brackets) and then we want to split this coordinates column, and assign the first value to a longitude and the second to a latitude column. 
+
+
+We've already done some removing, using the `replace()` function, so you should essentially be able to write this bit yourself! But as a refresher, I'll show you, I'm creating a new text column, and calling it coords2, and using the following code to replace the characters I don't need with empty spaces: 
+
+
+```{python, eval=FALSE}
+replace(replace("coordinates",'[',''),']','')
+```
+
+
+When done, click OK
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("makingCoords2.png")
+```
+
+
+Now, to get the longitude, you want the numbers on the left of the column, and you can get that with this equation: 
+
+
+```{python, eval=FALSE}
+ toreal( left("coords2", strpos("coords2", ',')))
+```
+
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("realLeft.png")
+```
+
+
+And to get the latitude you need the numbers on the right, which you get with this equation: 
+
+
+```{python, eval=FALSE}
+ toreal(right("coords2", length("coords2")-(strpos("coords2", ',')+1)))
+```
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("realRight.png")
+```
+
+
+Use these in field calculator to create latitude and longitude columns! You'll notice that we are also wrapping the equations into the `toreal()` function, because we want them to be numbers (as coordinates are) rather than text.
+
+You should also make sure that the columns you're creating are Decimal number (real) columns, and that you leave enough character spaces for the full coordinates!
+
+
+Now finally we are ready to map our tweets! Save this layer as a csv
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("saveCsv.png")
+```
+
+
+And then read it back in, as a delimited file, but this time WITH GEOMETRY. YAY!
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("andOpenWithGeom.png")
+```
+
+
+And finally, there is our one tweet:
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("theresThePoint.png")
+```
+
+
+I've added in an open streed map backdrop just to see where it is. Aaaand it's in Texas. That's different. 
+
+
+```{r, out.width = "600px", echo=FALSE}
+knitr::include_graphics("makingCoords2.png")
+```
+
+
+Well that's all folks, do feel free to play around with this, get some tweets about a topic you might be particularly interested in, or look into restricting your twitter queries spatially. To do that, you can add another parameter to the original search query, in the Python code. 
+
+Do you remember where we specified that we were looking for the term "night tube"?
+
+The part of the code that looked like this: 
+
+
+```{python, eval=FALSE}
+search_results = api.search(q="night tube", count=100)
+```
+
+
+Well you can add all sorts of further parameters to that search request. You can see some [here](http://docs.tweepy.org/en/v3.5.0/api.html) (hint: search for geocode under 'Help Methods). 
+
+
+So now, if you wanted to restrict the search to tweets within 500 km of London, you can get some coordinates for central London, and go from there: 
+
+
+```{python, eval=FALSE}
+search_results = api.search(q="night tube",  geocode='51.507351,-0.127758,500km', count=100)
+```
+
+
+Re-run your search with these specifications, and see what happens!
+
+
+#Final words
+
+So I hope that this tutorial has given you a taste for the wealth of open data that you can gain access to, through the tools that you have available to you, for free! With a bit of practice (and a lot of googling) you should be able to tap into these sources of data, and use them in your work and research. Do keep in mind however all that we discussed during lecture, both around the strengths of these data, and the limitations. Especially when scraping data, consider copyright, privacy, and other concerns around ethical use of these data, as well as the implicit biases inherent in their mode of production. But that said, do take advantage of such data as well, and don't let the limitations stop you from exploring what new insights they can provide into the topics of your research interests. 
+
+
+
+ [^1]: Actually this isn't really the first element but the second, as indexing begins with 0, so search_results[0] would be the first element, but there is absolutely no need to discuss here as part of this tutorial. I just didn't want to lie to you. 
+
